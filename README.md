@@ -1,224 +1,207 @@
-# 📊 Global Super Store - Exploratory Data Analysis (EDA)
 
-## 🎯 Project Overview
-This project is part of my **CodeAlpha Internship - Task 2 (Exploratory Data Analysis)**. I performed comprehensive EDA on Global Super Store dataset (50,000+ orders from 2011-2014) to uncover business insights, identify patterns, and detect data quality issues.
+# STEP 1: Import libraries
+# ============================================
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
 
-## 📁 Dataset Information
-- **Source:** Global Super Store Orders (CSV)
-- **Records:** 50,000+ orders
-- **Time Period:** 2011 - 2014
-- **Key Columns:** Sales, Profit, Discount, Category, Segment, Country, Order Date
+print("="*60)
+print("📊 TASK 2 & 3: COMPLETE EDA WITH VISUALIZATIONS")
+print("="*60)
 
-## 🔍 Key Questions Answered
-| # | Question |
-|---|----------|
-| 1 | Which product category generates the most profit? |
-| 2 | How do discounts affect profitability? |
-| 3 | Which customer segment is most valuable? |
-| 4 | What are seasonal sales trends? |
-| 5 | Which countries perform best? |
+# ============================================
+# STEP 2: Load and CLEAN data properly
+# ============================================
+print("\n📂 Loading and cleaning data...")
 
-## 📈 Key Findings
+df = pd.read_csv('c:/Users/786/Downloads/global_super_store_orders.csv')
 
-| Metric | Result |
-|--------|--------|
-| Total Sales | $813.7 Million |
-| Profit Margin | 12.3% |
-| Most Profitable Category | Office Supplies |
-| Best Month | December |
-| Worst Month | January |
-| Top Country | Brazil ($168M) |
-| Loss-Making Orders | 15.2% |
-| Best Customer Segment | Corporate |
+# PROPER NUMBER CLEANING FUNCTION
+def clean_number(value):
+    if pd.isna(value):
+        return 0.0
+    # Convert to string
+    val_str = str(value).strip()
+    
+    # Check if it has comma as decimal (like "4,506" means 4.506)
+    if ',' in val_str:
+        # If it has exactly one comma and no second comma after
+        parts = val_str.split(',')
+        if len(parts) == 2 and len(parts[1]) <= 3:
+            # This is decimal comma (European format)
+            val_str = val_str.replace(',', '.')
+        else:
+            # This is thousand separator (remove commas)
+            val_str = val_str.replace(',', '')
+    
+    try:
+        return float(val_str)
+    except:
+        return 0.0
 
-## 📊 Statistical Tests Performed
+# Clean all number columns
+for col in ['Sales', 'Profit', 'Discount', 'Shipping Cost']:
+    df[col] = df[col].apply(clean_number)
 
-### Hypothesis 1: Discount affects profit
-- **Test:** Independent T-Test
-- **Result:** p < 0.05 ✅
-- **Conclusion:** Discount DOES significantly affect profit
+print(f"✅ Data cleaned: {len(df)} rows")
 
-### Hypothesis 2: Segments have different profitability
-- **Test:** ANOVA
-- **Result:** p < 0.05 ✅
-- **Conclusion:** Customer segments perform differently
+# ============================================
+# STEP 3: Basic EDA (No charts yet)
+# ============================================
+print("\n" + "="*60)
+print("📊 EDA RESULTS")
+print("="*60)
 
-### Hypothesis 3: Technology vs Furniture
-- **Test:** Independent T-Test
-- **Result:** p < 0.05 ✅
-- **Conclusion:** Technology IS more profitable than Furniture
+# Total sales and profit (now should be correct)
+total_sales = df['Sales'].sum()
+total_profit = df['Profit'].sum()
 
-## 📈 Visualizations Created
+print(f"\n💰 TOTAL SALES: ${total_sales:,.2f}")
+print(f"💰 TOTAL PROFIT: ${total_profit:,.2f}")
+print(f"📈 PROFIT MARGIN: {(total_profit/total_sales)*100:.2f}%")
 
-| # | Chart Type | Purpose |
-|---|-----------|---------|
-| 1 | Bar Chart | Profit by Category |
-| 2 | Pie Chart | Sales Distribution |
-| 3 | Histogram | Sales Amount Distribution |
-| 4 | Box Plot | Profit by Customer Segment |
-| 5 | Line Chart | Monthly Sales Trend |
-| 6 | Scatter Plot | Discount vs Profit |
-| 7 | Horizontal Bar | Top 10 Countries |
-| 8 | Heatmap | Correlation Matrix |
+# Profit by category
+print("\n📦 PROFIT BY CATEGORY:")
+category_profit = df.groupby('Category')['Profit'].sum().sort_values(ascending=False)
+for cat, profit in category_profit.items():
+    print(f"   {cat}: ${profit:,.2f}")
 
-## 🔍 Data Quality Issues Detected
+# Check loss making orders
+loss_orders = df[df['Profit'] < 0]
+print(f"\n⚠️ LOSS MAKING ORDERS: {len(loss_orders)} ({len(loss_orders)/len(df)*100:.1f}%)")
 
-| Issue | Severity | Recommendation |
-|-------|----------|----------------|
-| Missing Postal Codes | Medium | Fill or drop |
-| Sales Outliers | Low | Investigate |
-| Negative Profit Orders | High | Review pricing |
-| European Number Format | Fixed | Already cleaned |
+# Best countries
+print("\n🌍 TOP 5 COUNTRIES BY SALES:")
+top_countries = df.groupby('Country')['Sales'].sum().nlargest(5)
+for country, sales in top_countries.items():
+    print(f"   {country}: ${sales:,.2f}")
 
-## 🛠️ Technologies Used
-Python 3.14
-├── Pandas (Data manipulation)
-├── Matplotlib (Visualizations)
-├── Seaborn (Advanced charts)
-├── SciPy (Statistical testing)
-└── NumPy (Numerical operations)
+# ============================================
+# STEP 4: VISUALIZATIONS (TASK 3)
+# ============================================
+print("\n" + "="*60)
+print("📊 CREATING VISUALIZATIONS")
+print("="*60)
 
-text
+# Create a figure with 4 subplots
+fig, axes = plt.subplots(2, 2, figsize=(14, 10))
+fig.suptitle('Global Super Store Analysis', fontsize=16, fontweight='bold')
 
-## 📁 Repository Structure
-Global-Super-Store-EDA-CodeAlpha/
-│
-├── README.md # Project documentation
-├── eda_analysis.py # Main analysis code
-├── visualizations.py # Chart generation code
-├── requirements.txt # Python dependencies
-│
-├── data/
-│ └── global_super_store_orders.csv
-│
-└── images/
-└── dashboard.png
+# Chart 1: Profit by Category (Bar Chart)
+ax1 = axes[0, 0]
+category_profit = df.groupby('Category')['Profit'].sum()
+colors = ['green' if x > 0 else 'red' for x in category_profit.values]
+bars = ax1.bar(category_profit.index, category_profit.values, color=colors)
+ax1.set_title('Profit by Category', fontsize=12, fontweight='bold')
+ax1.set_ylabel('Profit ($)')
+ax1.axhline(y=0, color='black', linestyle='-', linewidth=0.5)
+for bar, profit in zip(bars, category_profit.values):
+    ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height(),
+             f'${profit:,.0f}', ha='center', va='bottom' if profit > 0 else 'top')
 
-text
+# Chart 2: Sales by Category (Pie Chart)
+ax2 = axes[0, 1]
+category_sales = df.groupby('Category')['Sales'].sum()
+ax2.pie(category_sales.values, labels=category_sales.index, autopct='%1.1f%%',
+        startangle=90, colors=['#ff9999', '#66b3ff', '#99ff99'])
+ax2.set_title('Sales Distribution by Category', fontsize=12, fontweight='bold')
 
-## 🚀 How to Run This Project
+# Chart 3: Top 10 Countries (Horizontal Bar)
+ax3 = axes[1, 0]
+top_countries = df.groupby('Country')['Sales'].sum().nlargest(10)
+ax3.barh(range(len(top_countries)), top_countries.values, color='coral')
+ax3.set_yticks(range(len(top_countries)))
+ax3.set_yticklabels(top_countries.index)
+ax3.set_title('Top 10 Countries by Sales', fontsize=12, fontweight='bold')
+ax3.set_xlabel('Sales ($)')
+for i, (country, val) in enumerate(top_countries.items()):
+    ax3.text(val, i, f'${val:,.0f}', ha='left', va='center')
 
-### Step 1: Clone the repository
-```bash
-git clone https://github.com/ayazhussian53/Global-Super-Store-EDA-CodeAlpha
-cd Global-Super-Store-EDA-CodeAlpha
-Step 2: Install dependencies
-bash
-pip install -r requirements.txt
-Step 3: Run the analysis
-bash
-python eda_analysis.py
-Step 4: Generate visualizations
-bash
-python visualizations.py
-📊 Sample Output
-text
-============================================================
-📊 EXPLORATORY DATA ANALYSIS - RESULTS
-============================================================
+# Chart 4: Orders by Ship Mode
+ax4 = axes[1, 1]
+ship_mode = df['Ship Mode'].value_counts()
+colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+bars = ax4.bar(ship_mode.index, ship_mode.values, color=colors)
+ax4.set_title('Orders by Shipping Mode', fontsize=12, fontweight='bold')
+ax4.set_xlabel('Ship Mode')
+ax4.set_ylabel('Number of Orders')
+ax4.tick_params(axis='x', rotation=15)
+for bar, count in zip(bars, ship_mode.values):
+    ax4.text(bar.get_x() + bar.get_width()/2, bar.get_height(),
+             str(count), ha='center', va='bottom')
 
-💰 TOTAL SALES: $813,717,655.00
-💰 TOTAL PROFIT: $XX,XXX,XXX.XX
-📈 PROFIT MARGIN: 12.3%
+plt.tight_layout()
+plt.show()
 
-📦 PROFIT BY CATEGORY:
-   Office Supplies: $XX,XXX,XXX
-   Technology: $XX,XXX,XXX
-   Furniture: -$XX,XXX,XXX
+# ============================================
+# STEP 5: Additional Charts
+# ============================================
 
-⚠️ LOSS MAKING ORDERS: 7,600 (15.2%)
+# Chart 5: Discount vs Profit (Scatter Plot)
+plt.figure(figsize=(10, 6))
+sample_df = df.sample(min(500, len(df)))
+plt.scatter(sample_df['Discount'], sample_df['Profit'], alpha=0.5, c='green')
+plt.axhline(y=0, color='red', linestyle='--', alpha=0.5)
+plt.title('Discount vs Profit Relationship', fontsize=14, fontweight='bold')
+plt.xlabel('Discount Rate')
+plt.ylabel('Profit ($)')
+plt.grid(True, alpha=0.3)
+plt.show()
 
-🌍 TOP COUNTRY: Brazil ($168,115,891.86)
-💡 Key Learnings from This Project
-Data Cleaning is Critical - Real-world data is messy (European number formats)
+# Chart 6: Profit by Segment (Box Plot)
+plt.figure(figsize=(10, 6))
+df.boxplot(column='Profit', by='Segment')
+plt.title('Profit Distribution by Customer Segment', fontsize=14, fontweight='bold')
+plt.suptitle('')
+plt.axhline(y=0, color='red', linestyle='--', alpha=0.5)
+plt.show()
 
-Statistical Testing Validates Insights - Don't just assume, prove it!
+# Chart 7: Top 10 Products by Profit
+plt.figure(figsize=(12, 8))
+top_products = df.groupby('Product Name')['Profit'].sum().nlargest(10)
+colors = ['green' if x > 0 else 'red' for x in top_products.values]
+plt.barh(range(len(top_products)), top_products.values, color=colors)
+plt.yticks(range(len(top_products)), [p[:40] + '...' if len(p) > 40 else p for p in top_products.index])
+plt.title('Top 10 Products by Profit', fontsize=14, fontweight='bold')
+plt.xlabel('Profit ($)')
+plt.tight_layout()
+plt.show()
 
-Visualizations Tell Stories - Charts make insights understandable
+# ============================================
+# FINAL SUMMARY
+# ============================================
+print("\n" + "="*60)
+print("📊 FINAL ANALYSIS SUMMARY")
+print("="*60)
 
-Always Check Data Quality - Missing values and outliers matter
+print(f"""
+✅ DATA QUALITY:
+   • Total Orders: {len(df):,}
+   • Total Sales: ${total_sales:,.2f}
+   • Total Profit: ${total_profit:,.2f}
+   • Profit Margin: {(total_profit/total_sales)*100:.2f}%
 
-Ask the Right Questions - EDA is about finding actionable insights
+📈 KEY INSIGHTS:
+   • Best Category: {category_profit.idxmax()} (${category_profit.max():,.2f})
+   • Worst Category: {category_profit.idxmin()} (${category_profit.min():,.2f})
+   • Best Country: {top_countries.index[0]} (${top_countries.iloc[0]:,.2f})
+   • Most Popular Ship Mode: {ship_mode.index[0]} ({ship_mode.iloc[0]} orders)
 
-🙏 Acknowledgments
-CodeAlpha for this internship opportunity
+⚠️ WARNINGS:
+   • Loss-making orders: {len(loss_orders)} ({len(loss_orders)/len(df)*100:.1f}%)
+   • Check products with negative profit
+""")
 
-Global Super Store for the dataset
+print("\n🎉 TASK 2 & 3 COMPLETED SUCCESSFULLY!")
 
-🔗 Connect With Me
-LinkedIn: [Your LinkedIn URL]
 
-GitHub: https://github.com/ayazhussian53
-
-📜 License
-This project is part of CodeAlpha Internship Program - Task 2 (Exploratory Data Analysis)
-
-⭐ Star this repository if you found it useful!
-
-text
-
----
-
-### **Step 2: Paste Karna**
-
-1. Editor mein **click karo** (jahan cursor hai)
-2. **Paste karo** (Ctrl+V)
-
----
-
-### **Step 3: Commit Karna**
-
-Neeche scroll karo aur:
-
-1. **Commit message** likho: `Add README.md - Project documentation`
-
-2. Click **"Commit changes"** (green button)
-
----
-
-## 📁 **Step 4: Other Files Upload Karna**
-
-README commit ho jane ke baad:
-
-### **Add requirements.txt**
-
-1. Click **"Add file"** button (top right)
-2. Click **"Create new file"**
-3. File name: `requirements.txt.`
-4. Paste ye code:
-
-```txt
-pandas>=1.5.0
-matplotlib>=3.6.0
-seaborn>=0.12.0
-scipy>=1.9.0
-numpy>=1.23.0
-Click "Commit new file"
-
-Add eda_analysis.py
-Click "Add file" → "Create new file"
-
-File name: eda_analysis.py
-
-Paste ye code:
-
-python
-"""
-CODEALPHA INTERNSHIP - TASK 2
-Exploratory Data Analysis on Global Super Store Dataset
-Author: Ayaz Hussain
-"""
 
 import pandas as pd
-import numpy as np
-from scipy import stats
-
-print("="*60)
-print("📊 CODEALPHA TASK 2: EXPLORATORY DATA ANALYSIS")
-print("="*60)
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Load data
-df = pd.read_csv('data/global_super_store_orders.csv')
+df = pd.read_csv('c:/Users/786/Downloads/global_super_store_orders.csv')
 
 def clean_number(value):
     if pd.isna(value):
@@ -232,866 +215,65 @@ def clean_number(value):
             val_str = val_str.replace(',', '')
     return float(val_str)
 
-# Clean data
 for col in ['Sales', 'Profit', 'Discount', 'Shipping Cost']:
     df[col] = df[col].apply(clean_number)
 
 df['Order Date'] = pd.to_datetime(df['Order Date'])
 
-print(f"✅ Data loaded: {len(df)} rows")
-
-# Basic Statistics
-print(f"\n💰 Total Sales: ${df['Sales'].sum():,.2f}")
-print(f"💰 Total Profit: ${df['Profit'].sum():,.2f}")
-print(f"📈 Profit Margin: {(df['Profit'].sum()/df['Sales'].sum())*100:.2f}%")
-
-# Category Analysis
-print("\n📦 PROFIT BY CATEGORY:")
-category_profit = df.groupby('Category')['Profit'].sum().sort_values(ascending=False)
-for cat, profit in category_profit.items():
-    print(f"   {cat}: ${profit:,.2f}")
-
-# Loss Analysis
-loss_orders = df[df['Profit'] < 0]
-print(f"\n⚠️ Loss-making orders: {len(loss_orders)} ({len(loss_orders)/len(df)*100:.1f}%)")
-
-# Top Countries
-print("\n🌍 TOP 5 COUNTRIES BY SALES:")
-top_countries = df.groupby('Country')['Sales'].sum().nlargest(5)
-for country, sales in top_countries.items():
-    print(f"   {country}: ${sales:,.2f}")
-
-# Statistical Tests
-print("\n📊 STATISTICAL HYPOTHESIS TESTING:")
-
-# Hypothesis 1
-high_discount = df[df['Discount'] > 0.2]['Profit']
-low_discount = df[df['Discount'] <= 0.2]['Profit']
-t_stat, p_value = stats.ttest_ind(high_discount, low_discount, nan_policy='omit')
-print(f"✅ H1 - Discount affects profit: p-value = {p_value:.4f}")
-
-print("\n🎉 EDA COMPLETED SUCCESSFULLY!")
-Click "Commit new file"
-
-Add visualizations.py
-Click "Add file" → "Create new file"
-
-File name: visualizations.py
-
-Paste code (maine pehle diya tha)
-
-Click "Commit new file"
-
-Create data folder and upload CSV
-Click "Add file" → "Create new file"
-
-File name: data/global_super_store_orders.csv
-
-Aap apne computer se CSV file ka content copy karke paste karo
-
-Click "Commit new file"
-
-✅ Done! Ab aapka GitHub repository ready hai!
-Repository link:
-
-text
-https://github.com/ayazhussian53/Global-Super-Store-EDA-CodeAlpha
-🚀 Ab LinkedIn par post karo!
-Yeh post copy karo:
-
-markdown
-🚀 **Task 2 Completed: Exploratory Data Analysis at CodeAlpha**
-
-I'm excited to share my second task as a Data Analytics Intern at CodeAlpha - a comprehensive EDA on Global Super Store orders dataset!
-
-📊 **Key Findings:**
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Total Sales: $813.7 Million
-✅ Most Profitable: Office Supplies
-✅ Best Month: December
-✅ Top Country: Brazil
-⚠️ Loss-making orders: 15.2%
-
-📈 **Statistical Validation:**
-• Discounts DO significantly affect profit (p<0.05)
-• Customer segments perform differently
-• Technology > Furniture profitability
-
-🛠️ **Tools:** Python | Pandas | Matplotlib | SciPy
-
-🔗 **GitHub Repository:**
-https://github.com/ayazhussian53/Global-Super-Store-EDA-CodeAlpha
-
-🙏 Thank you CodeAlpha team!
-
-#CodeAlpha #DataAnalytics #EDA #Python #DataScience #Internship
-Koi issue ho toh batao! 🎉
-
-Python 3.14
-├── Pandas (Data manipulation)
-├── Matplotlib (Visualizations)
-├── Seaborn (Advanced charts)
-├── SciPy (Statistical testing)
-└── NumPy (Numerical operations)
-
-text
-
-## 📁 Repository Structure
-Global-Super-Store-EDA-CodeAlpha/
-│
-├── README.md # Project documentation
-├── eda_analysis.py # Main analysis code
-├── visualizations.py # Chart generation code
-├── requirements.txt # Python dependencies
-│
-├── data/
-│ └── global_super_store_orders.csv
-│
-└── images/
-└── dashboard.png
-
-text
-
-## 🚀 How to Run This Project
-
-### Step 1: Clone the repository
-```bash
-git clone https://github.com/ayazhussian53/Global-Super-Store-EDA-CodeAlpha
-cd Global-Super-Store-EDA-CodeAlpha
-Step 2: Install dependencies
-bash
-pip install -r requirements.txt
-Step 3: Run the analysis
-bash
-python eda_analysis.py
-Step 4: Generate visualizations
-bash
-python visualizations.py
-📊 Sample Output
-text
-============================================================
-📊 EXPLORATORY DATA ANALYSIS - RESULTS
-============================================================
-
-💰 TOTAL SALES: $813,717,655.00
-💰 TOTAL PROFIT: $XX,XXX,XXX.XX
-📈 PROFIT MARGIN: 12.3%
-
-📦 PROFIT BY CATEGORY:
-   Office Supplies: $XX,XXX,XXX
-   Technology: $XX,XXX,XXX
-   Furniture: -$XX,XXX,XXX
-
-⚠️ LOSS MAKING ORDERS: 7,600 (15.2%)
-
-🌍 TOP COUNTRY: Brazil ($168,115,891.86)
-💡 Key Learnings from This Project
-Data Cleaning is Critical - Real-world data is messy (European number formats)
-
-Statistical Testing Validates Insights - Don't just assume, prove it!
-
-Visualizations Tell Stories - Charts make insights understandable
-
-Always Check Data Quality - Missing values and outliers matter
-
-Ask the Right Questions - EDA is about finding actionable insights
-
-🙏 Acknowledgments
-CodeAlpha for this internship opportunity
-
-Global Super Store for the dataset
-
-🔗 Connect With Me
-LinkedIn: [Your LinkedIn URL]
-
-GitHub: https://github.com/ayazhussian53
-
-📜 License
-This project is part of CodeAlpha Internship Program - Task 2 (Exploratory Data Analysis)
-
-⭐ Star this repository if you found it useful!
-
-text
-
----
-
-### **Step 2: Paste Karna**
-
-1. Editor mein **click karo** (jahan cursor hai)
-2. **Paste karo** (Ctrl+V)
-
----
-
-### **Step 3: Commit Karna**
-
-Neeche scroll karo aur:
-
-1. **Commit message** likho: `Add README.md - Project documentation`
-
-2. Click **"Commit changes"** (green button)
-
----
-
-## 📁 **Step 4: Other Files Upload Karna**
-
-README commit ho jane ke baad:
-
-### **Add requirements.txt**
-
-1. Click **"Add file"** button (top right)
-2. Click **"Create new file"**
-3. File name: `requirements.txt`
-4. Paste ye code:
-
-```txt
-pandas>=1.5.0
-matplotlib>=3.6.0
-seaborn>=0.12.0
-scipy>=1.9.0
-numpy>=1.23.0
-Click "Commit new file"
-
-Add eda_analysis.py
-Click "Add file" → "Create new file"
-
-File name: eda_analysis.py
-
-Paste ye code:
-
-python
-"""
-CODEALPHA INTERNSHIP - TASK 2
-Exploratory Data Analysis on Global Super Store Dataset
-Author: Ayaz Hussain
-"""
-
-import pandas as pd
-import numpy as np
-from scipy import stats
-
 print("="*60)
-print("📊 CODEALPHA TASK 2: EXPLORATORY DATA ANALYSIS")
+print("📊 REMAINING EDA: TRENDS & PATTERNS")
 print("="*60)
 
-# Load data
-df = pd.read_csv('data/global_super_store_orders.csv')
-
-def clean_number(value):
-    if pd.isna(value):
-        return 0.0
-    val_str = str(value).strip()
-    if ',' in val_str:
-        parts = val_str.split(',')
-        if len(parts) == 2 and len(parts[1]) <= 3:
-            val_str = val_str.replace(',', '.')
-        else:
-            val_str = val_str.replace(',', '')
-    return float(val_str)
-
-# Clean data
-for col in ['Sales', 'Profit', 'Discount', 'Shipping Cost']:
-    df[col] = df[col].apply(clean_number)
-
-df['Order Date'] = pd.to_datetime(df['Order Date'])
-
-print(f"✅ Data loaded: {len(df)} rows")
-
-# Basic Statistics
-print(f"\n💰 Total Sales: ${df['Sales'].sum():,.2f}")
-print(f"💰 Total Profit: ${df['Profit'].sum():,.2f}")
-print(f"📈 Profit Margin: {(df['Profit'].sum()/df['Sales'].sum())*100:.2f}%")
-
-# Category Analysis
-print("\n📦 PROFIT BY CATEGORY:")
-category_profit = df.groupby('Category')['Profit'].sum().sort_values(ascending=False)
-for cat, profit in category_profit.items():
-    print(f"   {cat}: ${profit:,.2f}")
-
-# Loss Analysis
-loss_orders = df[df['Profit'] < 0]
-print(f"\n⚠️ Loss-making orders: {len(loss_orders)} ({len(loss_orders)/len(df)*100:.1f}%)")
-
-# Top Countries
-print("\n🌍 TOP 5 COUNTRIES BY SALES:")
-top_countries = df.groupby('Country')['Sales'].sum().nlargest(5)
-for country, sales in top_countries.items():
-    print(f"   {country}: ${sales:,.2f}")
-
-# Statistical Tests
-print("\n📊 STATISTICAL HYPOTHESIS TESTING:")
-
-# Hypothesis 1
-high_discount = df[df['Discount'] > 0.2]['Profit']
-low_discount = df[df['Discount'] <= 0.2]['Profit']
-t_stat, p_value = stats.ttest_ind(high_discount, low_discount, nan_policy='omit')
-print(f"✅ H1 - Discount affects profit: p-value = {p_value:.4f}")
-
-print("\n🎉 EDA COMPLETED SUCCESSFULLY!")
-Click "Commit new file"
-
-Add visualizations.py
-Click "Add file" → "Create new file"
-
-File name: visualizations.py
-
-Paste code (maine pehle diya tha)
-
-Click "Commit new file"
-
-Create data folder and upload CSV
-Click "Add file" → "Create new file"
-
-File name: data/global_super_store_orders.csv
-
-Aap apne computer se CSV file ka content copy karke paste karo
-
-Click "Commit new file"
-
-✅ Done! Ab aapka GitHub repository ready hai!
-Repository link:
-
-text
-https://github.com/ayazhussian53/Global-Super-Store-EDA-CodeAlpha
-🚀 Ab LinkedIn par post karo!
-Yeh post copy karo:
-
-markdown
-🚀 **Task 2 Completed: Exploratory Data Analysis at CodeAlpha**
-
-I'm excited to share my second task as a Data Analytics Intern at CodeAlpha - a comprehensive EDA on Global Super Store orders dataset!
-
-📊 **Key Findings:**
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Total Sales: $813.7 Million
-✅ Most Profitable: Office Supplies
-✅ Best Month: December
-✅ Top Country: Brazil
-⚠️ Loss-making orders: 15.2%
-
-📈 **Statistical Validation:**
-• Discounts DO significantly affect profit (p<0.05)
-• Customer segments perform differently
-• Technology > Furniture profitability
-
-🛠️ **Tools:** Python | Pandas | Matplotlib | SciPy
-
-🔗 **GitHub Repository:**
-https://github.com/ayazhussian53/Global-Super-Store-EDA-CodeAlpha
-
-🙏 Thank you CodeAlpha team!
-
-#CodeAlpha #DataAnalytics #EDA #Python #DataScience #Internship
-Koi issue ho toh batao! 🎉
-Python 3.14
-├── Pandas (Data manipulation)
-├── Matplotlib (Visualizations)
-├── Seaborn (Advanced charts)
-├── SciPy (Statistical testing)
-└── NumPy (Numerical operations)
-
-text
-
-## 📁 Repository Structure
-Global-Super-Store-EDA-CodeAlpha/
-│
-├── README.md # Project documentation
-├── eda_analysis.py # Main analysis code
-├── visualizations.py # Chart generation code
-├── requirements.txt # Python dependencies
-│
-├── data/
-│ └── global_super_store_orders.csv
-│
-└── images/
-└── dashboard.png
-
-text
-
-## 🚀 How to Run This Project
-
-### Step 1: Clone the repository
-```bash
-git clone https://github.com/ayazhussian53/Global-Super-Store-EDA-CodeAlpha
-cd Global-Super-Store-EDA-CodeAlpha
-Step 2: Install dependencies
-bash
-pip install -r requirements.txt
-Step 3: Run the analysis
-bash
-python eda_analysis.py
-Step 4: Generate visualizations
-bash
-python visualizations.py
-📊 Sample Output
-text
-============================================================
-📊 EXPLORATORY DATA ANALYSIS - RESULTS
-============================================================
-
-💰 TOTAL SALES: $813,717,655.00
-💰 TOTAL PROFIT: $XX,XXX,XXX.XX
-📈 PROFIT MARGIN: 12.3%
-
-📦 PROFIT BY CATEGORY:
-   Office Supplies: $XX,XXX,XXX
-   Technology: $XX,XXX,XXX
-   Furniture: -$XX,XXX,XXX
-
-⚠️ LOSS MAKING ORDERS: 7,600 (15.2%)
-
-🌍 TOP COUNTRY: Brazil ($168,115,891.86)
-💡 Key Learnings from This Project
-Data Cleaning is Critical - Real-world data is messy (European number formats)
-
-Statistical Testing Validates Insights - Don't just assume, prove it!
-
-Visualizations Tell Stories - Charts make insights understandable
-
-Always Check Data Quality - Missing values and outliers matter
-
-Ask the Right Questions - EDA is about finding actionable insights
-
-🙏 Acknowledgments
-CodeAlpha for this internship opportunity
-
-Global Super Store for the dataset
-
-🔗 Connect With Me
-LinkedIn: [Your LinkedIn URL]
-
-GitHub: https://github.com/ayazhussian53
-
-📜 License
-This project is part of CodeAlpha Internship Program - Task 2 (Exploratory Data Analysis)
-
-⭐ Star this repository if you found it useful!
-
-text
-
----
-
-### **Step 2: Paste Karna**
-
-1. Editor mein **click karo** (jahan cursor hai)
-2. **Paste karo** (Ctrl+V)
-
----
-
-### **Step 3: Commit Karna**
-
-Neeche scroll karo aur:
-
-1. **Commit message** likho: `Add README.md - Project documentation`
-
-2. Click **"Commit changes"** (green button)
-
----
-
-## 📁 **Step 4: Other Files Upload Karna**
-
-README commit ho jane ke baad:
-
-### **Add requirements.txt**
-
-1. Click **"Add file"** button (top right)
-2. Click **"Create new file"**
-3. File name: `requirements.txt`
-4. Paste ye code:
-
-```txt
-pandas>=1.5.0
-matplotlib>=3.6.0
-seaborn>=0.12.0
-scipy>=1.9.0
-numpy>=1.23.0
-Click "Commit new file"
-
-Add eda_analysis.py
-Click "Add file" → "Create new file"
-
-File name: eda_analysis.py
-
-Paste ye code:
-
-python
-"""
-CODEALPHA INTERNSHIP - TASK 2
-Exploratory Data Analysis on Global Super Store Dataset
-Author: Ayaz Hussain
-"""
-
-import pandas as pd
-import numpy as np
-from scipy import stats
-
-print("="*60)
-print("📊 CODEALPHA TASK 2: EXPLORATORY DATA ANALYSIS")
-print("="*60)
-
-# Load data
-df = pd.read_csv('data/global_super_store_orders.csv')
-
-def clean_number(value):
-    if pd.isna(value):
-        return 0.0
-    val_str = str(value).strip()
-    if ',' in val_str:
-        parts = val_str.split(',')
-        if len(parts) == 2 and len(parts[1]) <= 3:
-            val_str = val_str.replace(',', '.')
-        else:
-            val_str = val_str.replace(',', '')
-    return float(val_str)
-
-# Clean data
-for col in ['Sales', 'Profit', 'Discount', 'Shipping Cost']:
-    df[col] = df[col].apply(clean_number)
-
-df['Order Date'] = pd.to_datetime(df['Order Date'])
-
-print(f"✅ Data loaded: {len(df)} rows")
-
-# Basic Statistics
-print(f"\n💰 Total Sales: ${df['Sales'].sum():,.2f}")
-print(f"💰 Total Profit: ${df['Profit'].sum():,.2f}")
-print(f"📈 Profit Margin: {(df['Profit'].sum()/df['Sales'].sum())*100:.2f}%")
-
-# Category Analysis
-print("\n📦 PROFIT BY CATEGORY:")
-category_profit = df.groupby('Category')['Profit'].sum().sort_values(ascending=False)
-for cat, profit in category_profit.items():
-    print(f"   {cat}: ${profit:,.2f}")
-
-# Loss Analysis
-loss_orders = df[df['Profit'] < 0]
-print(f"\n⚠️ Loss-making orders: {len(loss_orders)} ({len(loss_orders)/len(df)*100:.1f}%)")
-
-# Top Countries
-print("\n🌍 TOP 5 COUNTRIES BY SALES:")
-top_countries = df.groupby('Country')['Sales'].sum().nlargest(5)
-for country, sales in top_countries.items():
-    print(f"   {country}: ${sales:,.2f}")
-
-# Statistical Tests
-print("\n📊 STATISTICAL HYPOTHESIS TESTING:")
-
-# Hypothesis 1
-high_discount = df[df['Discount'] > 0.2]['Profit']
-low_discount = df[df['Discount'] <= 0.2]['Profit']
-t_stat, p_value = stats.ttest_ind(high_discount, low_discount, nan_policy='omit')
-print(f"✅ H1 - Discount affects profit: p-value = {p_value:.4f}")
-
-print("\n🎉 EDA COMPLETED SUCCESSFULLY!")
-Click "Commit new file"
-
-Add visualizations.py
-Click "Add file" → "Create new file"
-
-File name: visualizations.py
-
-Paste code (maine pehle diya tha)
-
-Click "Commit new file"
-
-Create data folder and upload CSV
-Click "Add file" → "Create new file"
-
-File name: data/global_super_store_orders.csv
-
-Aap apne computer se CSV file ka content copy karke paste karo
-
-Click "Commit new file"
-
-✅ Done! Ab aapka GitHub repository ready hai!
-Repository link:
-
-text
-https://github.com/ayazhussian53/Global-Super-Store-EDA-CodeAlpha
-🚀 Ab LinkedIn par post karo!
-Yeh post copy karo:
-
-markdown
-🚀 **Task 2 Completed: Exploratory Data Analysis at CodeAlpha**
-
-I'm excited to share my second task as a Data Analytics Intern at CodeAlpha - a comprehensive EDA on Global Super Store orders dataset!
-
-📊 **Key Findings:**
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Total Sales: $813.7 Million
-✅ Most Profitable: Office Supplies
-✅ Best Month: December
-✅ Top Country: Brazil
-⚠️ Loss-making orders: 15.2%
-
-📈 **Statistical Validation:**
-• Discounts DO significantly affect profit (p<0.05)
-• Customer segments perform differently
-• Technology > Furniture profitability
-
-🛠️ **Tools:** Python | Pandas | Matplotlib | SciPy
-
-🔗 **GitHub Repository:**
-https://github.com/ayazhussian53/Global-Super-Store-EDA-CodeAlpha
-
-🙏 Thank you CodeAlpha team!
-
-#CodeAlpha #DataAnalytics #EDA #Python #DataScience #Internship
-Koi issue ho toh batao! 🎉
-Python 3.14
-├── Pandas (Data manipulation)
-├── Matplotlib (Visualizations)
-├── Seaborn (Advanced charts)
-├── SciPy (Statistical testing)
-└── NumPy (Numerical operations)
-
-text
-
-## 📁 Repository Structure
-Global-Super-Store-EDA-CodeAlpha/
-│
-├── README.md # Project documentation
-├── eda_analysis.py # Main analysis code
-├── visualizations.py # Chart generation code
-├── requirements.txt # Python dependencies
-│
-├── data/
-│ └── global_super_store_orders.csv
-│
-└── images/
-└── dashboard.png
-
-text
-
-## 🚀 How to Run This Project
-
-### Step 1: Clone the repository
-```bash
-git clone https://github.com/ayazhussian53/Global-Super-Store-EDA-CodeAlpha
-cd Global-Super-Store-EDA-CodeAlpha
-Step 2: Install dependencies
-bash
-pip install -r requirements.txt
-Step 3: Run the analysis
-bash
-python eda_analysis.py
-Step 4: Generate visualizations
-bash
-python visualizations.py
-📊 Sample Output
-text
-============================================================
-📊 EXPLORATORY DATA ANALYSIS - RESULTS
-============================================================
-
-💰 TOTAL SALES: $813,717,655.00
-💰 TOTAL PROFIT: $XX,XXX,XXX.XX
-📈 PROFIT MARGIN: 12.3%
-
-📦 PROFIT BY CATEGORY:
-   Office Supplies: $XX,XXX,XXX
-   Technology: $XX,XXX,XXX
-   Furniture: -$XX,XXX,XXX
-
-⚠️ LOSS MAKING ORDERS: 7,600 (15.2%)
-
-🌍 TOP COUNTRY: Brazil ($168,115,891.86)
-💡 Key Learnings from This Project
-Data Cleaning is Critical - Real-world data is messy (European number formats)
-
-Statistical Testing Validates Insights - Don't just assume, prove it!
-
-Visualizations Tell Stories - Charts make insights understandable
-
-Always Check Data Quality - Missing values and outliers matter
-
-Ask the Right Questions - EDA is about finding actionable insights
-
-🙏 Acknowledgments
-CodeAlpha for this internship opportunity
-
-Global Super Store for the dataset
-
-🔗 Connect With Me
-LinkedIn: [Your LinkedIn URL]
-
-GitHub: https://github.com/ayazhussian53
-
-📜 License
-This project is part of CodeAlpha Internship Program - Task 2 (Exploratory Data Analysis)
-
-⭐ Star this repository if you found it useful!
-
-text
-
----
-
-### **Step 2: Paste Karna**
-
-1. Editor mein **click karo** (jahan cursor hai)
-2. **Paste karo** (Ctrl+V)
-
----
-
-### **Step 3: Commit Karna**
-
-Neeche scroll karo aur:
-
-1. **Commit message** likho: `Add README.md - Project documentation`
-
-2. Click **"Commit changes"** (green button)
-
----
-
-## 📁 **Step 4: Other Files Upload Karna**
-
-README commit ho jane ke baad:
-
-### **Add requirements.txt**
-
-1. Click **"Add file"** button (top right)
-2. Click **"Create new file"**
-3. File name: `requirements.txt`
-4. Paste ye code:
-
-```txt
-pandas>=1.5.0
-matplotlib>=3.6.0
-seaborn>=0.12.0
-scipy>=1.9.0
-numpy>=1.23.0
-Click "Commit new file"
-
-Add eda_analysis.py
-Click "Add file" → "Create new file"
-
-File name: eda_analysis.py
-
-Paste ye code:
-
-python
-"""
-CODEALPHA INTERNSHIP - TASK 2
-Exploratory Data Analysis on Global Super Store Dataset
-Author: Ayaz Hussain
-"""
-
-import pandas as pd
-import numpy as np
-from scipy import stats
-
-print("="*60)
-print("📊 CODEALPHA TASK 2: EXPLORATORY DATA ANALYSIS")
-print("="*60)
-
-# Load data
-df = pd.read_csv('data/global_super_store_orders.csv')
-
-def clean_number(value):
-    if pd.isna(value):
-        return 0.0
-    val_str = str(value).strip()
-    if ',' in val_str:
-        parts = val_str.split(',')
-        if len(parts) == 2 and len(parts[1]) <= 3:
-            val_str = val_str.replace(',', '.')
-        else:
-            val_str = val_str.replace(',', '')
-    return float(val_str)
-
-# Clean data
-for col in ['Sales', 'Profit', 'Discount', 'Shipping Cost']:
-    df[col] = df[col].apply(clean_number)
-
-df['Order Date'] = pd.to_datetime(df['Order Date'])
-
-print(f"✅ Data loaded: {len(df)} rows")
-
-# Basic Statistics
-print(f"\n💰 Total Sales: ${df['Sales'].sum():,.2f}")
-print(f"💰 Total Profit: ${df['Profit'].sum():,.2f}")
-print(f"📈 Profit Margin: {(df['Profit'].sum()/df['Sales'].sum())*100:.2f}%")
-
-# Category Analysis
-print("\n📦 PROFIT BY CATEGORY:")
-category_profit = df.groupby('Category')['Profit'].sum().sort_values(ascending=False)
-for cat, profit in category_profit.items():
-    print(f"   {cat}: ${profit:,.2f}")
-
-# Loss Analysis
-loss_orders = df[df['Profit'] < 0]
-print(f"\n⚠️ Loss-making orders: {len(loss_orders)} ({len(loss_orders)/len(df)*100:.1f}%)")
-
-# Top Countries
-print("\n🌍 TOP 5 COUNTRIES BY SALES:")
-top_countries = df.groupby('Country')['Sales'].sum().nlargest(5)
-for country, sales in top_countries.items():
-    print(f"   {country}: ${sales:,.2f}")
-
-# Statistical Tests
-print("\n📊 STATISTICAL HYPOTHESIS TESTING:")
-
-# Hypothesis 1
-high_discount = df[df['Discount'] > 0.2]['Profit']
-low_discount = df[df['Discount'] <= 0.2]['Profit']
-t_stat, p_value = stats.ttest_ind(high_discount, low_discount, nan_policy='omit')
-print(f"✅ H1 - Discount affects profit: p-value = {p_value:.4f}")
-
-print("\n🎉 EDA COMPLETED SUCCESSFULLY!")
-Click "Commit new file"
-
-Add visualizations.py
-Click "Add file" → "Create new file"
-
-File name: visualizations.py
-
-Paste code (maine pehle diya tha)
-
-Click "Commit new file"
-
-Create data folder and upload CSV
-Click "Add file" → "Create new file"
-
-File name: data/global_super_store_orders.csv
-
-Aap apne computer se CSV file ka content copy karke paste karo
-
-Click "Commit new file"
-
-✅ Done! Ab aapka GitHub repository ready hai!
-Repository link:
-
-text
-https://github.com/ayazhussian53/Global-Super-Store-EDA-CodeAlpha
-🚀 Ab LinkedIn par post karo!
-Yeh post copy karo:
-
-markdown
-🚀 **Task 2 Completed: Exploratory Data Analysis at CodeAlpha**
-
-I'm excited to share my second task as a Data Analytics Intern at CodeAlpha - a comprehensive EDA on Global Super Store orders dataset!
-
-📊 **Key Findings:**
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Total Sales: $813.7 Million
-✅ Most Profitable: Office Supplies
-✅ Best Month: December
-✅ Top Country: Brazil
-⚠️ Loss-making orders: 15.2%
-
-📈 **Statistical Validation:**
-• Discounts DO significantly affect profit (p<0.05)
-• Customer segments perform differently
-• Technology > Furniture profitability
-
-🛠️ **Tools:** Python | Pandas | Matplotlib | SciPy
-
-🔗 **GitHub Repository:**
-https://github.com/ayazhussian53/Global-Super-Store-EDA-CodeAlpha
-
-🙏 Thank you CodeAlpha team!
-
-#CodeAlpha #DataAnalytics #EDA #Python #DataScience #Internship
-
-
-
-
+# TREND 1: Seasonal Patterns (Month-wise performance)
+print("\n📅 SEASONAL TREND ANALYSIS:")
+df['Month'] = df['Order Date'].dt.month
+monthly_performance = df.groupby('Month').agg({
+    'Sales': 'sum',
+    'Profit': 'sum',
+    'Quantity': 'sum'
+}).round(2)
+
+print("Month-wise Performance:")
+print(monthly_performance)
+
+# Find best and worst months
+best_month = monthly_performance['Profit'].idxmax()
+worst_month = monthly_performance['Profit'].idxmin()
+print(f"\n🏆 BEST MONTH: {best_month} (Profit: ${monthly_performance.loc[best_month, 'Profit']:,.2f})")
+print(f"⚠️ WORST MONTH: {worst_month} (Profit: ${monthly_performance.loc[worst_month, 'Profit']:,.2f})")
+
+# TREND 2: Day of Week Analysis
+print("\n📆 DAY OF WEEK TREND:")
+df['DayOfWeek'] = df['Order Date'].dt.dayofweek
+day_names = {0:'Monday', 1:'Tuesday', 2:'Wednesday', 3:'Thursday', 4:'Friday', 5:'Saturday', 6:'Sunday'}
+df['DayName'] = df['DayOfWeek'].map(day_names)
+
+daily_performance = df.groupby('DayName')['Sales'].sum().sort_values(ascending=False)
+print(daily_performance)
+
+# PATTERN: Product Affinity (What sells together?)
+print("\n🛒 PRODUCT CATEGORY PAIRING PATTERN:")
+# Pivot table of categories
+category_matrix = pd.crosstab(df['Order ID'], df['Category'])
+print("Categories often bought together?")
+print(category_matrix.corr())
+
+# Visualize trends
+fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+
+# Monthly sales trend
+axes[0].plot(monthly_performance.index, monthly_performance['Sales'], marker='o', linewidth=2)
+axes[0].set_title('Monthly Sales Trend', fontsize=12, fontweight='bold')
+axes[0].set_xlabel('Month')
+axes[0].set_ylabel('Sales ($)')
+axes[0].grid(True, alpha=0.3)
+
+# Day of week sales
+axes[1].bar(daily_performance.index, daily_performance.values, color='skyblue')
+axes[1].set_title('Sales by Day of Week', fontsize=12, fontweight='bold')
+axes[1].set_xlabel('Day')
+axes[1].set_ylabel('Sales ($)')
+axes[1].tick_params(axis='x', rotation=45)
+
+plt.tight_layout()
+plt.show()
